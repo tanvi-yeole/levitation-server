@@ -1,6 +1,10 @@
-import puppeteer from "puppeteer";
+import puppeteer from 'puppeteer-core';
+import chrome from '@sparticuz/chromium';
 import path from "path";
 import fs from "fs";
+import dotenv from 'dotenv'
+
+dotenv.config();
 
 interface Product {
   name: string;
@@ -19,11 +23,20 @@ interface InvoiceData {
 }
 
 export const generatePDF = async (data: InvoiceData): Promise<string> => {
-  const browser = await puppeteer.launch();
+  const executablePath =
+    process.env.NODE_ENV === "production"
+      ? await chrome.executablePath()
+      : puppeteer.executablePath();
+
+  const browser = await puppeteer.launch({
+    args: [...chrome.args, "--hide-scrollbars", "--disable-web-security"],
+    executablePath,
+    headless: true,
+  });
   const page = await browser.newPage();
-const logoPath = path.resolve(__dirname, "../../public/Logo.jpg");
-const logoBase64 = fs.readFileSync(logoPath).toString("base64");
-const logoSrc = `data:image/jpeg;base64,${logoBase64}`;
+  const logoPath = path.resolve(__dirname, "../../public/Logo.jpg");
+  const logoBase64 = fs.readFileSync(logoPath).toString("base64");
+  const logoSrc = `data:image/jpeg;base64,${logoBase64}`;
 
   const html = `
     <html>
@@ -135,22 +148,30 @@ const logoSrc = `data:image/jpeg;base64,${logoBase64}`;
               </tr>
             </thead>
             <tbody>
-              ${data.products.map(p => `
+              ${data.products
+                .map(
+                  (p) => `
                 <tr>
                   <td>${p.name}</td>
                   <td>${p.qty}</td>
                   <td>${p.rate}</td>
                   <td>INR ${(p.qty * p.rate).toFixed(2)}</td>
                 </tr>
-              `).join('')}
+              `
+                )
+                .join("")}
             </tbody>
           </table>
 
           <div class="totals">
             <div class="totals-box">
-              <p><span>Total Charges</span><span>₹ ${data.total.toFixed(2)}</span></p>
+              <p><span>Total Charges</span><span>₹ ${data.total.toFixed(
+                2
+              )}</span></p>
               <p><span>GST (18%)</span><span>₹ ${data.gst.toFixed(2)}</span></p>
-              <p class="grand"><span>Total Amount</span><span>₹ ${data.grandTotal.toFixed(2)}</span></p>
+              <p class="grand"><span>Total Amount</span><span>₹ ${data.grandTotal.toFixed(
+                2
+              )}</span></p>
             </div>
           </div>
 
@@ -163,17 +184,25 @@ const logoSrc = `data:image/jpeg;base64,${logoBase64}`;
     </html>
   `;
 
-  await page.setContent(html, { waitUntil: "networkidle0" });
+  await page.setContent(html);
 
-  const invoicesDir = path.join(__dirname, "../../public/invoices");
+  const baseDir = process.env.NODE_ENV === 'production' ? '/tmp' : path.join(__dirname, '../../public');
+  const invoicesDir = path.join(baseDir, 'invoices');
+  
   if (!fs.existsSync(invoicesDir)) {
     fs.mkdirSync(invoicesDir, { recursive: true });
   }
 
-  const filePath = path.join(invoicesDir, `invoice_${Date.now()}.pdf`);
+  const fileName = `invoice_${Date.now()}.pdf`;
+  const filePath = path.join(invoicesDir, fileName);
 
-  await page.pdf({ path: filePath, format: "A4", printBackground: true });
+  await page.pdf({ path: filePath, format: 'A4' });
   await browser.close();
 
-  return filePath;
+  const pdfBuffer = fs.readFileSync(filePath);
+  const base64Pdf = pdfBuffer.toString('base64');
+  
+  fs.unlinkSync(filePath);
+  
+  return base64Pdf;
 };

@@ -10,6 +10,7 @@
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^138.0.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -20,6 +21,7 @@
     "mongoose": "^8.5.1",
     "morgan": "^1.10.0",
     "puppeteer": "^23.2.1",
+    "puppeteer-core": "^24.17.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
