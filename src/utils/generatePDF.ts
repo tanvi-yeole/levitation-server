@@ -54,31 +54,15 @@ export const generatePDF = async (data: InvoiceData): Promise<string> => {
           .title h1 { font-size:16px; margin:0; }
           .title p { font-size:11px; color:#999; margin:0; }
 
-          .userinfo { 
-            display:flex; 
-            justify-content:space-between; 
-            align-items:center; 
-            margin-top:20px; 
-            background:#0f172a; /* Solid color instead of gradient */
-            padding:20px; 
-            border-radius:12px; 
-            color:white; 
-          }
+          .userinfo { display:flex; justify-content:space-between; align-items:center; margin-top:20px; background:linear-gradient(135deg, #0f172a 0%, #111827 55%, #193121 100%); padding:20px; border-radius:12px; color:white; }
           .userinfo .name { font-size:14px; }
           .userinfo .person { font-weight:bold; color:#a3e635; margin-top:4px; }
           .userinfo .date { font-size:12px; }
-          .userinfo .email { 
-            background:#111827; 
-            padding:5px 10px; 
-            border-radius:12px; 
-            font-size:11px; 
-            display:inline-block; 
-            margin-top:6px; 
-          }
+          .userinfo .email { background:#111827; padding:5px 10px; border-radius:12px; font-size:11px; display:inline-block; margin-top:6px; }
 
           table { width:100%; border-collapse:separate; border-spacing:0; margin-top:25px; font-size:14px; }
-          thead {
-            background:#1e1b4b;
+          thead{
+            background:linear-gradient(to right, #1e1b4b, #14532d);
             text-align:left;
           }
           thead th {
@@ -122,15 +106,7 @@ export const generatePDF = async (data: InvoiceData): Promise<string> => {
           .totals-box p { margin:6px 0; display:flex; justify-content:space-between; font-size:14px; color:#444; }
           .totals-box .grand { font-weight:bold; font-size:16px; border-top:1px solid #ddd; padding-top:10px; margin-top:10px; color:#2563eb; }
 
-          .footer { 
-            margin-top:40px; 
-            text-align:center; 
-            font-size:12px; 
-            background:#111827; 
-            color:white; 
-            padding:12px 20px; 
-            border-radius:20px; 
-          }
+          .footer { margin-top:40px; text-align:center; font-size:12px; background:#111827; color:white; padding:12px 20px; border-radius:20px; }
         </style>
       </head>
       <body>
@@ -138,9 +114,9 @@ export const generatePDF = async (data: InvoiceData): Promise<string> => {
           <!-- Header -->
           <div class="header">
             <div class="logo">
-              ${logoSrc ? `<div class="logo-icon">
+              <div class="logo-icon">
                 <img src="${logoSrc}" alt="Logo" style="width:40px; height:40px; border-radius:6px;" />
-              </div>` : ''}
+              </div>
               <div class="company">
                 <h2>Levitation</h2>
                 <p>Infotech</p>
@@ -154,11 +130,11 @@ export const generatePDF = async (data: InvoiceData): Promise<string> => {
           <div class="userinfo">
             <div>
               <div class="name">Name</div>
-              <div class="person">${data.customerName || 'Customer'}</div>
+              <div class="person">${data.customerName}</div>
             </div>
             <div style="text-align:right">
-              <div class="date">Date: ${data.date || new Date().toLocaleDateString()}</div>
-              <div class="email">${data.email || 'customer@example.com'}</div>
+              <div class="date">Date: ${data.date}</div>
+              <div class="email">${data.email}</div>
             </div>
           </div>
 
@@ -189,9 +165,13 @@ export const generatePDF = async (data: InvoiceData): Promise<string> => {
 
           <div class="totals">
             <div class="totals-box">
-              <p><span>Total Charges</span><span>₹ ${data.total.toFixed(2)}</span></p>
+              <p><span>Total Charges</span><span>₹ ${data.total.toFixed(
+                2
+              )}</span></p>
               <p><span>GST (18%)</span><span>₹ ${data.gst.toFixed(2)}</span></p>
-              <p class="grand"><span>Total Amount</span><span>₹ ${data.grandTotal.toFixed(2)}</span></p>
+              <p class="grand"><span>Total Amount</span><span>₹ ${data.grandTotal.toFixed(
+                2
+              )}</span></p>
             </div>
           </div>
 
@@ -206,9 +186,7 @@ export const generatePDF = async (data: InvoiceData): Promise<string> => {
 
   await page.setContent(html);
 
-  const baseDir = process.env.NODE_ENV === 'production' ? '/tmp' : path.join(__dirname, '../../public');
-  const invoicesDir = path.join(baseDir, 'invoices');
-  
+  const invoicesDir = path.join(__dirname, "../../public/invoices");
   if (!fs.existsSync(invoicesDir)) {
     fs.mkdirSync(invoicesDir, { recursive: true });
   }
@@ -216,13 +194,8 @@ export const generatePDF = async (data: InvoiceData): Promise<string> => {
   const fileName = `invoice_${Date.now()}.pdf`;
   const filePath = path.join(invoicesDir, fileName);
 
-  await page.pdf({ path: filePath, format: 'A4' });
+  await page.pdf({ path: filePath, format: "A4", printBackground: true });
   await browser.close();
 
-  const pdfBuffer = fs.readFileSync(filePath);
-  const base64Pdf = pdfBuffer.toString('base64');
-  
-  fs.unlinkSync(filePath);
-  
-  return base64Pdf;
+  return fileName;
 };

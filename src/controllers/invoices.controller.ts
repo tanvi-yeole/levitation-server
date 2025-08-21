@@ -36,31 +36,29 @@ export const createInvoice = async (req: AuthRequest, res: Response) => {
       0
     );
 
-    const pdfBase64 = await generatePDF({
+    const fileName = await generatePDF({
       customerName: req.user.name,
       email: req.user.email,
       date: new Date().toISOString(),
       products: enrichedProducts,
       total: grandTotal - grandTotal * 0.18,
       gst: grandTotal * 0.18,
-      grandTotal
+      grandTotal,
     });
-
-    const fileName = `invoice_${Date.now()}.pdf`;
 
     const invoice = new Invoice({
       userId: req.user.id,
       products: enrichedProducts,
       grandTotal,
-      pdfPath: fileName 
+      pdfPath: fileName,
     });
+
     await invoice.save();
 
     res.json({
       message: 'Invoice created successfully',
-      pdfData: pdfBase64,
-      fileName: fileName,
-      downloadLink: `data:application/pdf;base64,${pdfBase64}`
+      pdfUrl: `/invoices/${fileName}`,
+      fileName,
     });
   } catch (err) {
     console.error(err);
